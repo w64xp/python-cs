@@ -17,6 +17,7 @@ products = [
     Product("ไม้บรรทัด", 25, 7)
 ]
 
+
 while True:
     name = input("ชื่อสินค้า (พิมพ์ 'stop' เพื่อหยุด): ")
     if name.lower() == "stop":
