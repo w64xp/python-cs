@@ -30,26 +30,28 @@ class StudentForm(QMainWindow):
 
         self.loadData()
         self.btn_save.clicked.connect(self.saveData)
-        self.btn_save.clicked.connect(self.loadData)
-
-        self.btn_delete.clicked.connect(self.delelte_record)
-        self.btn_delete.clicked.connect(self.loadData)
-
+        self.btn_delete.clicked.connect(self.delete_record)
         self.btn_update.clicked.connect(self.update_record)
-        self.btn_update.clicked.connect(self.loadData)
+        self.btn_clear.clicked.connect(self.clear_form)
 
         self.tableWidget.cellClicked.connect(self.fill_form_table)
 
-    def saveData(self):
-        id_student = self.id_student.text()
-        f_name = self.f_name.text()
-        l_name = self.l_name.text()
-        major = self.major.text()
+    def clear_form(self):
+        self.id_student.clear()
+        self.f_name.clear()
+        self.l_name.clear()
+        self.major.clear()
+        self.lineCode.clear()
 
-        ###### INSERT TO DATABASE ######
+    def saveData(self):
+        id_student = self.id_student.text().strip()
+        f_name = self.f_name.text().strip()
+        l_name = self.l_name.text().strip()
+        major = self.major.text().strip()
+
         if not all([id_student, f_name, l_name, major]):
-            QMessageBox.warning(self, "ข้อมูลไม่ครบถ้วน", "กรุณากรอกข้อมูลให้ครบทุกช่อง")
-            return
+            return QMessageBox.warning(self, "ข้อมูลไม่ครบถ้วน", "กรุณากรอกข้อมูลให้ครบทุกช่อง")
+
         try:
             conn = sqlite3.connect(DB_PATH)
             cur = conn.cursor()
@@ -58,29 +60,18 @@ class StudentForm(QMainWindow):
                 (id_student, f_name, l_name, major),
             )
             conn.commit()
+        except sqlite3.IntegrityError:
+            QMessageBox.warning(self, "รหัสซ้ำ", f"รหัสนักศึกษา {id_student} มีอยู่แล้ว")
+            return
         except Exception as e:
-            QMessageBox.critical(self, "บันทึกข้อมูลล้มเหลว", f"เกิดข้อผิดพลาด\n{e}")
+            QMessageBox.critical(self, "บันทึกล้มเหลว", f"เกิดข้อผิดพลาด\n{e}")
             return
         finally:
             conn.close()
 
         QMessageBox.information(self, "สำเร็จ", "บันทึกข้อมูลสำเร็จ")
-
-        QMessageBox.information(
-            self,
-            "ข้อมูลนักศึกษา",
-            f"รหัสนักศึกษา : {id_student}\n"
-            f"ชื่อ : {f_name}\n"
-            f"นามสกุล : {l_name}\n"
-            f"สาขาวิชา : {major}\n",
-        )
-        self.id_student.setText("")
-        self.f_name.setText("")
-        self.l_name.setText("")
-        self.major.setText("")
-        self.lineCode.setText("")
-
-        
+        self.clear_form()
+        self.loadData()
 
     def loadData(self):
         try:
@@ -89,45 +80,43 @@ class StudentForm(QMainWindow):
             cur.execute("SELECT * FROM profile")
             rows = cur.fetchall()
         except Exception as e:
-            QMessageBox.critical(self, "โหลดข้อมูลล้มเหลว", f"เกิดความผิดพลาด\n {e}")
+            QMessageBox.critical(self, "โหลดข้อมูลล้มเหลว", f"เกิดความผิดพลาด\n{e}")
             return
         finally:
             conn.close()
-        # กำหนดแถว
+
         self.tableWidget.setRowCount(len(rows))
         self.tableWidget.setColumnCount(4)
-
         self.tableWidget.setHorizontalHeaderLabels(["รหัส", "ชื่อ", "นามสกุล", "สาขาวิชา"])
 
-        # โหลดข้อมูลทีละแถว
         for r, row in enumerate(rows):
             for c, val in enumerate(row):
                 self.tableWidget.setItem(r, c, QTableWidgetItem(str(val)))
 
         self.tableWidget.resizeColumnsToContents()
 
-    def delelte_record(self):
+    def delete_record(self):
         code = self.lineCode.text().strip()
-        if not code :
-            return self.msg("ไม่พบรหัส", "กรุณาเลือกรายการจากตารางก่อน", QMessageBox.warning)
-        
-        confirm = QMessageBox.question(self, "ยืนยันการลบ", f"ต้องการลบข้อมูลหรือไม่ '{code}' ใช่หรือไม่",
-        QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if not code:
+            return QMessageBox.warning(self, "ไม่พบรหัส", "กรุณาเลือกรายการจากตารางก่อน")
 
+        confirm = QMessageBox.question(
+            self, "ยืนยันการลบ", f"ต้องการลบข้อมูลรหัส {code} ใช่หรือไม่?",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+        )
         if confirm != QMessageBox.Yes:
             return
-        
+
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
         cur.execute("DELETE FROM profile WHERE id_student = ?", (code,))
         conn.commit()
+        if cur.rowcount == 0:
+            QMessageBox.warning(self, "ไม่พบข้อมูล", "ไม่พบรหัสที่ต้องการลบ")
 
-        self.id_student.setText("")
-        self.f_name.setText("")
-        self.l_name.setText("")
-        self.major.setText("")
-        self.lineCode.setText("")
-
+        conn.close()
+        self.clear_form()
+        self.loadData()
 
     def update_record(self):
         code = self.lineCode.text().strip()
@@ -136,47 +125,36 @@ class StudentForm(QMainWindow):
         l_name = self.l_name.text().strip()
         major = self.major.text().strip()
 
-        if not code :
-            return self.msg("ไม่พบรหัส", "กรุณาเลือกรายการจากตารางก่อน", QMessageBox.warning)
-        if not (id_student and f_name and l_name and major) :
-            return self.msg("ข้อมูลไม่ครบ", "กรุณากรอกข้อมูลใหม่", QMessageBox.warning)
-        
+        if not code:
+            return QMessageBox.warning(self, "ไม่พบรหัส", "กรุณาเลือกรายการจากตารางก่อน")
+        if not (id_student and f_name and l_name and major):
+            return QMessageBox.warning(self, "ข้อมูลไม่ครบ", "กรุณากรอกข้อมูลใหม่")
+
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
         cur.execute(
             "UPDATE profile SET id_student = ?, f_name = ?, l_name = ?, major = ? WHERE id_student = ?",
-            (id_student, f_name, l_name, major, code)
+            (id_student,f_name, l_name, major, code)
         )
-
         conn.commit()
-        
-        comfirm = QMessageBox.question(self, "ยืนยันการลบ", f"ต้องการลบข้อมูลหรือไม่ '{code}' ใช่หรือไม่",
-        QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if cur.rowcount == 0:
+            QMessageBox.warning(self, "ไม่พบข้อมูล", "ไม่พบรหัสที่ต้องการอัปเดต")
 
-        self.id_student.setText("")
-        self.f_name.setText("")
-        self.l_name.setText("")
-        self.major.setText("")
-        self.lineCode.setText("")
-
+        conn.close()
+        self.clear_form()
+        self.loadData()
 
     def fill_form_table(self, row, column):
-        # ดึงค่าจากแถวที่เลือก
         id_student = self.tableWidget.item(row, 0).text()
         f_name = self.tableWidget.item(row, 1).text()
         l_name = self.tableWidget.item(row, 2).text()
         major = self.tableWidget.item(row, 3).text()
 
-        # ใส่ค่าลงในช่องกรอก
         self.id_student.setText(id_student)
         self.f_name.setText(f_name)
         self.l_name.setText(l_name)
         self.major.setText(major)
-
-        # เก็บค่าไว้ใน lineCode (ใช้ตอน update/delete)
         self.lineCode.setText(id_student)
-
-
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)

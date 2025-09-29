@@ -126,13 +126,36 @@
           <layout class="QHBoxLayout" name="horizontalLayout_8">
            <item>
             <widget class="QLabel" name="label_6">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
              <property name="text">
               <string>Select :</string>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QLineEdit" name="lineCode"/>
+            <widget class="QLineEdit" name="lineCode">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="cursor">
+              <cursorShape>ArrowCursor</cursorShape>
+             </property>
+             <property name="autoFillBackground">
+              <bool>false</bool>
+             </property>
+             <property name="frame">
+              <bool>false</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="btn_clear">
+             <property name="text">
+              <string>Clear</string>
+             </property>
+            </widget>
            </item>
           </layout>
          </item>
