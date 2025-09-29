@@ -15,14 +15,14 @@ class StudentForm(QMainWindow):
         last_name = self.lineEdit_3.text()
         major = self.lineEdit_4.text()
 
-        # QMessageBox.information(
-        #     self ,
-        #     "ข้อมูลนักศึกษา",
-        #     f"รหัสนักศึกษา : {student_ID}\n"
-        #     f"ชื่อ : {first_name}\n"
-        #     f"นามสกุล : {last_name}\n"
-        #     f"สาขาวิชา : {major}\n"
-        # )
+        QMessageBox.information(
+            self ,
+            "ข้อมูลนักศึกษา",
+            f"รหัสนักศึกษา : {student_ID}\n"
+            f"ชื่อ : {first_name}\n"
+            f"นามสกุล : {last_name}\n"
+            f"สาขาวิชา : {major}\n"
+        )
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
